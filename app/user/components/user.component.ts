@@ -1,49 +1,42 @@
-import _ from "lodash";
-
-import { User } from "../models/index";
+import { IUserService, UserService } from "../services/index";
 
 import template from "./user.component.html!text";
 
-interface IBindings {
-    [key: string]: any;
+class controller {
+    public static readonly componentName: string = "user";
+    public static readonly $inject: Array<string> = [UserService.serviceName];
 
-    user: any;
-    onUserSelect: any;
-}
+    public msg: any;
+    id: number = 1;
+    constructor(private userService: IUserService) { }
 
-class Changes implements ng.IOnChangesObject, IBindings {
-    [key: string]: ng.IChangesObject<any>;
-
-    public user: ng.IChangesObject<User>;
-    public onUserSelect: ng.IChangesObject<(param: { user: User }) => void>;
-}
-
-let bindings: IBindings = {
-    user: "<",
-    onUserSelect: "&"
-};
-
-class controller implements IBindings {
-    public static readonly componentName: string  = "user";
-    public static readonly $inject: Array<string> = ["$log"];
-
-    public user: User;
-
-    public onUserSelect: (param: { user: User }) => void;
-
-    constructor(private $log: ng.ILogService) {}
-
-    public $onChanges(changes: Changes) {
-        if (changes.user && this.user) {
-            this.$log.info("User binding changed");
-            this.user = _.cloneDeep(this.user);
-        }
-    }
-
-    public select() {
-        this.$log.info(`User ${this.user.name} selected`);
-        this.onUserSelect({ user: this.user });
+    public $onInit() {
+        let self = this;
+        // make request to api to get the user
+        return this.userService.getUser(this.id)
+            .then(response => {
+                if (response) {
+                    if (document.cookie != undefined) {
+                        if (document.cookie.indexOf("sample=") >= 0) {
+                            self.msg = "Cookie exists!";
+                        }
+                        else {
+                            // set a new cookie
+                            let d = new Date();
+                            d.setTime(d.getTime() + (24 * 60 * 60 * 1000));
+                            let expires = "expires=" + d.toUTCString();
+                            document.cookie = "sample=true;" + expires + ";path=/";
+                            self.msg = "Cookie doesn't exist. Created a new cookie!. Redirecting to www.moodys.com";
+                            setTimeout(() => {
+                            window["location"] = 'https://www.moodys.com';
+                            }, 5000);
+                        }
+                    } else {
+                        alert("Your browser doesn't support cookie");
+                    }
+                }
+            });
     }
 }
 
-export let UserComponent = { controller, template, bindings };
+export let UserComponent = { controller, template };
